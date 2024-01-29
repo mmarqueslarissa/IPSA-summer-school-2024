@@ -1,0 +1,248 @@
+---
+title: "Day 1"
+author:
+  - name:
+lang: pt
+date: "`r format(Sys.Date())`" # Data do relatório
+date-format: short # Formato de data curto: dd/MM/yyyy 
+toc: true
+toc-location: left
+format: 
+  html:
+      self-contained: true
+      css: ["custom.css"] # Customização com css
+      code-fold: true # code-fold: true para "ocultar" o bloco de códigos
+      code-tools: true  #code-tools: true para ativar ferramentas de interação com os códigos
+  #    number-sections: true # Número de seções/subseções
+      fig-height: 23
+      fig-width: 30
+      theme: 
+        light: cosmo
+        dark: superhero # Sugestão: superhero/vapor Mudar o tema do relatório aqui
+title-block-banner: "#fefae0"
+code-annotations: hover # Para anotações em códigos
+execute:
+  warning: false
+  message: false
+---
+
+```{r}
+
+## Open packages
+pacman::p_load(haven, tidyverse, kableExtra, FactoMineR)
+
+## laod the date
+
+data_ihds <- read_dta("~/IPSA-summer-school-2024/Day 1/1_Assignments/ihds.dta")
+
+```
+
+# 2. What types of variables do you have?
+
+```{r}
+
+glimpse(data_ihds)
+#unique(data_ihds$id_religion)
+
+```
+
+We have 8 dichotomous, 2 categorical, 3 ordinal, 0 continuous and 5 discretes. 
+
+## 3. What is the first age at which each woman in the dataset was married?
+
+```{r}
+
+marriage_age <- data_ihds %>% 
+  select(married_first_age) %>% 
+  count(married_first_age)  %>% 
+  kbl() %>%
+  kable_paper(full_width = F)
+
+marriage_age
+
+```
+
+
+The reason for the discrepancy between married people (34671) and married_fisrt_agr respondents (521) may be due to social constraint to give the real answer, or they may not be sure about/remember the answer.
+
+```{r}
+table(data_ihds$id_marital_status)
+```
+
+
+# 3.1 Correcting missing problems 
+
+Creating a new variable:
+
+```{r}
+
+married_first_age_complete_d <- data_ihds %>% 
+  mutate(married_first_age_complete = id_age - married_age)
+  
+marriage_age <- data_ihds %>% 
+  select(married_first_age) %>% 
+  count(married_first_age)  %>% 
+  kbl() %>%
+  kable_paper(full_width = F)  
+  
+
+```
+
+
+# 4. Plot a density plot of your variable for age of first marriage
+
+```{r}
+
+data_ihds %>% 
+  ggplot(aes(x= married_first_age)) + 
+  geom_density()
+
+```
+
+# 5. Plot a histogram of the variable for caste (id_caste_category)
+
+```{r}
+
+data_ihds %>% 
+  ggplot(aes(x= id_caste_category)) + 
+  geom_histogram()
+
+
+```
+
+# 6. Recode the education variable so that it is a categorical variable with five categories: No Education, 1st-5thClass, 6th-9thClass, Secondary –High Secondary, and More than High Secondary.
+
+```{r}
+
+hist(data_ihds$id_education)
+
+```
+
+The age range in data is from 0 to 16 years of education.
+
+```{r}
+         
+         
+data_ihds <- data_ihds %>% 
+  #select(id_education) %>% 
+  mutate(id_education_recoded = case_when(id_education == 0 ~ "No Education",
+                                          id_education <= 1 & id_education <= 5 ~ "1st-5thClass", 
+                                          id_education <= 6 & id_education <= 9 ~ "6th-9thClass",
+                                          id_education <= 10 & id_education <= 12 ~ "Secondary –High Secondary",
+                                          id_education <= 13 & id_education <= 16 ~ "More than High Secondary"))
+
+
+         
+```
+
+# 7. Run a cross-tabulation using your new education variable and id_caste_category
+
+```{r}
+
+table(data_ihds$id_education_recoded, data_ihds$id_caste_category)
+
+```
+
+# 8. Using all of the variables on decision-making (beginning with decide_) construct an index as the arithmetic sum of all measures.
+
+```{r}
+
+data_ihds <- data_ihds %>% 
+  mutate(decision_index = decide_cook_respondent + decide_purchase_respondent+ decide_children_respondent + decide_sick_respondent + 
+           decide_land_respondent + decide_wedding_respondent + decide_childsick_respondent + decide_childmarry_respondent)
+
+
+hist(data_ihds$decision_index)
+
+
+```
+
+# 9. Construct another index using the same variables by taking the mean (in this case proportion of 1’s) across all of the variables.
+
+```{r}
+
+data_ihds <- data_ihds %>% 
+  mutate(decision_index_mean = c(decide_cook_respondent + decide_purchase_respondent+ decide_children_respondent + decide_sick_respondent + decide_land_respondent + decide_wedding_respondent + decide_childsick_respondent + decide_childmarry_respondent) /8)
+
+hist(data_ihds$decision_index_mean)
+
+```
+
+# 10. Run a principal components analysis. 
+
+
+```{r}
+
+data_ihds_pca <- data_ihds %>% 
+  select(decide_cook_respondent, decide_purchase_respondent, decide_children_respondent, decide_sick_respondent,
+         decide_land_respondent, decide_wedding_respondent, decide_childsick_respondent, decide_childmarry_respondent) %>% 
+   drop_na() 
+
+data_pca_ihds <- prcomp(data_ihds_pca, center = T, scale. = T)
+
+print(data_pca_ihds)
+
+```
+
+# 10.1 Extract the first two principal components as additional indices
+
+```{r}
+
+pca_index <- as.data.frame(data_pca_ihds$x) %>% 
+  select(PC1, PC2)
+
+data_ihds_pca <- data_ihds_pca %>% 
+  select(decide_cook_respondent, decide_purchase_respondent, decide_children_respondent, decide_sick_respondent,
+         decide_land_respondent, decide_wedding_respondent, decide_childsick_respondent, decide_childmarry_respondent, 
+         ) %>% 
+  mutate(decision_index_mean = c(decide_cook_respondent + decide_purchase_respondent+ decide_children_respondent + decide_sick_respondent + decide_land_respondent + decide_wedding_respondent + decide_childsick_respondent + decide_childmarry_respondent)/8,
+         decision_index_soma = c(decide_cook_respondent + decide_purchase_respondent+ decide_children_respondent + decide_sick_respondent + decide_land_respondent + decide_wedding_respondent + decide_childsick_respondent + decide_childmarry_respondent))
+
+
+data_pca_complete <- cbind(data_ihds_pca, pca_index)
+
+```
+
+# 11. Look at the correlation across these four indices. 
+
+```{r}
+
+data_pca_complete  <- data_pca_complete %>% 
+  select(decision_index_mean, decision_index_soma, PC1, PC2) %>% 
+  drop_na()
+  
+cor(data_pca_complete)
+
+
+```
+
+# 12. Calculate the mean, standard deviation, min, and max for each of the following variables: id_caste_category, id_marital_status, your new education variable, married_first_age_complete, married_distance_fam, and your four created indices.
+
+```{r}
+
+summary(data_ihds$id_caste_category)
+summary(data_ihds$id_marital_status)
+summary(married_first_age_complete_d$married_first_age_complete)
+summary(data_ihds$married_distance_fam)
+summary(data_pca_complete$decision_index_mean)
+summary(data_pca_complete$decision_index_soma)
+summary(data_pca_complete$PC1)
+summary(data_pca_complete$PC2)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

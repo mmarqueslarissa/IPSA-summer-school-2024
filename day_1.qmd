@@ -1,0 +1,113 @@
+---
+title: "Day 1"
+author:
+  - name:
+lang: pt
+date: "`r format(Sys.Date())`" # Data do relatório
+date-format: short # Formato de data curto: dd/MM/yyyy 
+toc: true
+toc-location: left
+format: 
+  html:
+      self-contained: true
+      css: ["custom.css"] # Customização com css
+      code-fold: true # code-fold: true para "ocultar" o bloco de códigos
+      code-tools: true  #code-tools: true para ativar ferramentas de interação com os códigos
+  #    number-sections: true # Número de seções/subseções
+      fig-height: 23
+      fig-width: 30
+      theme: 
+        light: cosmo
+        dark: superhero # Sugestão: superhero/vapor Mudar o tema do relatório aqui
+title-block-banner: "#fefae0"
+code-annotations: hover # Para anotações em códigos
+execute:
+  warning: false
+  message: false
+---
+
+```{r}
+
+## Open packages
+pacman::p_load(haven, tidyverse)
+
+## laod the date
+
+data_2016_LAPOP <- read_dta("Brazil/1. Brazil 2016_17 Data.dta")
+
+```
+
+
+## First step
+
+Describing 
+
+
+
+## describing general characteristics 
+
+The data analysed calls LAPOP Americas Barometer   
+
+```{r}
+#glimpse()
+```
+
+As the result above show is that the data has 1,532 observations and 236 variables. 
+
+
+## Age information
+
+```{r}
+
+summary(data_2016_LAPOP$q2)
+
+```
+
+## By gender
+
+```{r}
+
+mean_gender <- data_2016_LAPOP %>% 
+    select(uniq_id, q2, q1) %>% 
+    group_by(q1) %>% 
+    summarise(mean_gender = mean(q2, na.rm = T)) %>% 
+  rename("gender" = "q1")
+
+mean_gender
+
+```
+
+## Income information
+
+```{r}
+## Informações sobre a idade 
+summary(data_2016_LAPOP$q10g)
+```
+
+## By gender
+
+```{r}
+
+## By gender
+
+mean_income <- data_2016_LAPOP %>% 
+    select(uniq_id, q1, q10g) %>% 
+    group_by(q1) %>% 
+    summarise(mean_gender = mean(q10g, na.rm = T)) %>% 
+  rename("gender" = "q1")
+```
+
+## Income graphical visualization by gender
+
+```{r}
+
+data_2016_LAPOP %>% 
+  mutate(q1 = case_when(q1 == 1 ~ "Homem", 
+                        q1 == 2 ~ "Mulher")) %>% 
+  ggplot(aes(y = q10g, fill = as.character(q1)))+
+  geom_boxplot(position = position_dodge(width = 0.75)) +  
+  #geom_jitter(width = 0.2) +  # Add jitter without specifying position
+  labs(y = "Income (by categories)", fill = "")
+
+```
+
